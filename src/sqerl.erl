@@ -72,7 +72,7 @@ encode(Val, true) when is_binary(Val) ->
 encode(Val, true) ->
     list_to_binary(encode(Val,false));
 encode(Val, false) when is_atom(Val) ->
-    atom_to_list(Val);
+    encode(atom_to_list(Val));
 encode(Val, false) when is_list(Val) ->
     quote(Val);
 encode(Val, false) when is_integer(Val) ->
@@ -283,9 +283,14 @@ extra_clause2(Exprs, Safe) ->
     Res = [extra_clause(Expr,Safe) || Expr <- Exprs, Expr =/= undefined],
     [Res].
 
+ins_param(Val) when is_atom(Val) ->
+    list_to_binary(atom_to_list(Val));
+ins_param(Val) ->
+    encode(Val).
+
 insert(Table, Params) when is_list(Params) ->
     Names = make_list(Params, fun({Name, _}) -> convert(Name) end),
-    Values = [$(, make_list(Params, fun({_, Val}) -> encode(Val) end), $)],
+    Values = [$(, make_list(Params, fun({_, Val}) -> ins_param(Val) end), $)],
     make_insert_query(Table, Names, Values);
 insert(Table, {Fields, Records}) ->
     Names = make_list(Fields, fun convert/1),
