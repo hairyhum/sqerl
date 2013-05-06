@@ -260,6 +260,8 @@ extra_clause(Exprs, Safe) when is_list(Exprs) ->
     end;
 extra_clause(Exprs, true) when is_list(Exprs) ->
     extra_clause2(Exprs, true);
+extra_clause({limit, all}, _Safe) ->
+    [<<" LIMIT ">>, <<" ALL ">>];
 extra_clause({limit, Num}, _Safe) ->
     [<<" LIMIT ">>, encode(Num)];
 extra_clause({limit, Offset, Num}, _Safe) ->
