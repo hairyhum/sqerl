@@ -394,6 +394,21 @@ expr({undefined, Op, Expr2}, Safe) when Op =:= 'and'; Op =:= 'not' ->
     expr(Expr2, Safe);
 expr({Expr1, Op, undefined}, Safe) when Op =:= 'and'; Op =:= 'not' ->
     expr(Expr1, Safe);
+expr({Table, Join, Table2, on, {{Table, Column}, Op, {Table2, Column2}} = Cond}, Safe)
+    when is_atom(Table), is_atom(Table2),
+         is_atom(Column), is_atom(Column2),
+         is_atom(Op),
+         Join =:= join orelse
+         Join =:= {cross, join} orelse
+         Join =:= {inner, join} orelse
+         Join =:= {left, join} orelse
+         Join =:= {right, join} orelse
+         Join =:= {full, join} orelse
+         Join =:= {outer, join} orelse
+         Join =:= {left, outer, join} orelse
+         Join =:= {right, outer, join} orelse
+         Join =:= {full, outer, join} ->
+    [convert(Table), join(Join), convert(Table2), <<" ON ">>, expr(Cond, Safe)];
 expr({Expr1, Op, Expr2}, Safe)  ->
     {B1, B2} = if (Op =:= 'and' orelse Op =:= 'or') ->
         {check_expr(Expr1, Safe), check_expr(Expr2, Safe)};
@@ -417,6 +432,17 @@ check_expr(Expr, Safe) when is_list(Expr); is_binary(Expr) ->
         true -> iolist_to_binary([$(, Expr, $)])
     end;
 check_expr(Expr, Safe) -> expr(Expr, Safe).
+
+join(join) -> <<" JOIN ">>;
+join({cross, join}) -> <<" CROSS JOIN ">>;
+join({inner, join}) -> <<" INNER JOIN ">>;
+join({left, join}) -> <<" LEFT JOIN ">>;
+join({right, join}) -> <<" RIGHT JOIN ">>;
+join({full, join}) -> <<" FULL JOIN ">>;
+join({outer, join}) -> <<" OUTER JOIN ">>;
+join({left, outer, join}) -> <<" LEFT OUTER JOIN ">>;
+join({right, outer, join}) -> <<" RIGHT OUTER JOIN ">>;
+join({full, outer, join}) -> <<" FULL OUTER JOIN ">>.
 
 op(Op) -> convert(op1(Op)).
 op1('and') -> 'AND';
