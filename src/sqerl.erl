@@ -106,6 +106,12 @@ two_digits(Num) ->
         _ -> Str
     end.
 
+sql2('begin', _Safe) ->
+    [<<"BEGIN">>];
+sql2('commit', _Safe) ->
+    [<<"COMMIT">>];
+sql2('roll', _Safe) ->
+    [<<"ROLLBACK">>];
 sql2({select, Tables}, Safe)->
     select(Tables, Safe);
 sql2({select, Fields, {from, Tables}}, Safe) ->
