@@ -490,7 +490,7 @@ quote([$\r | Rest], Acc) ->
 quote([$\\ | Rest], Acc) ->
     quote(Rest, [$\\ , $\\ | Acc]);
 quote([$' | Rest], Acc) ->
-    quote(Rest, [$', $\\ | Acc]);
+    quote(Rest, [$', $' | Acc]);
 quote([$" | Rest], Acc) ->
     quote(Rest, [$", $\\ | Acc]);
 quote([$\^Z | Rest], Acc) ->
