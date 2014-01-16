@@ -400,7 +400,7 @@ expr({undefined, Op, Expr2}, Safe) when Op =:= 'and'; Op =:= 'not' ->
     expr(Expr2, Safe);
 expr({Expr1, Op, undefined}, Safe) when Op =:= 'and'; Op =:= 'not' ->
     expr(Expr1, Safe);
-expr({Table, Join, Table2, on, {{Table2, Column}, Op, {Table, Column2}}}, Safe) ->
+expr({Table, Join, Table2, on, {{Table2, Column2}, Op, {Table, Column}}}, Safe) ->
     expr({Table, Join, Table2, on, {{Table, Column}, Op, {Table2, Column2}}}, Safe);
 expr({Table, Join, Table2, on, {{Table, Column}, Op, {Table2, Column2}} = Cond}, Safe)
     when is_atom(Table), is_atom(Table2),
