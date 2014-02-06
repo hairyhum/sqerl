@@ -463,7 +463,8 @@ subquery(Val, Op, Subquery, Safe) ->
 
 subquery_op(in) -> <<" IN (">>;
 subquery_op(any) -> <<" ANY (">>;
-subquery_op(some) -> <<" SOME (">>.
+subquery_op(some) -> <<" SOME (">>;
+subquery_op(exists) -> <<" EXISTS (">>.
 
 expr2(undefined, _Safe) -> <<"NULL">>;
 expr2(Expr, _Safe) when is_atom(Expr) -> convert(Expr);
