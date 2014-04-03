@@ -494,8 +494,6 @@ quote([$\\ | Rest], Acc) ->
     quote(Rest, [$\\ , $\\ | Acc]);
 quote([$' | Rest], Acc) ->
     quote(Rest, [$', $' | Acc]);
-quote([$" | Rest], Acc) ->
-    quote(Rest, [$", $\\ | Acc]);
 quote([$\^Z | Rest], Acc) ->
     quote(Rest, [$Z, $\\ | Acc]);
 quote([C | Rest], Acc) ->
