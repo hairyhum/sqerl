@@ -394,6 +394,7 @@ expr({Val, Op, {_, union, _, _, _} = Subquery}, Safe) ->
 expr({_, in, []}, _Safe) -> <<"0">>;
 expr({Val, Op, Values}, Safe) when (Op =:= in orelse
                                     Op =:= any orelse
+                                    Op =:= all orelse
                                     Op =:= some) andalso is_list(Values) ->
     [expr2(Val, Safe), subquery_op(Op), make_list(Values, fun encode/1), $)];
 expr({undefined, Op, Expr2}, Safe) when Op =:= 'and'; Op =:= 'not' ->
@@ -420,6 +421,8 @@ expr({Table, Join, Table2, on, {{Table, Column}, Op, {Table2, Column2}} = Cond},
 expr({Expr1, Op, Expr2}, Safe)  ->
     {B1, B2} = if (Op =:= 'and' orelse Op =:= 'or') ->
         {check_expr(Expr1, Safe), check_expr(Expr2, Safe)};
+    Op =:= '= any' ->
+        {expr2(Expr1, Safe), [$(, expr2(Expr2, Safe), $)]};
     true ->
         {expr2(Expr1, Safe), expr2(Expr2, Safe)}
     end,
