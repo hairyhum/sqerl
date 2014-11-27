@@ -367,6 +367,8 @@ expr({Not, Expr}, Safe) when (Not =:= 'not' orelse Not =:= '!') ->
     [<<"NOT ">>, check_expr(Expr, Safe)];
 expr({Table, Field}, _Safe) when is_atom(Table), is_atom(Field) ->
     [convert(Table), $., convert(Field)];
+expr({cast, Expr1, as, Type}, Safe) when is_atom(Type) ->
+    [<<" CAST (">>, expr2(Expr1, Safe), <<" AS ">>, convert(Type), <<" )">>];
 expr({Expr1, as, Alias}, Safe) when is_atom(Alias) ->
     [expr2(Expr1, Safe), <<" AS ">>, convert(Alias)];
 expr({call, FuncName, []}, _Safe) ->
