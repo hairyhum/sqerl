@@ -373,8 +373,8 @@ expr({Expr1, as, Alias}, Safe) when is_atom(Alias) ->
     [expr2(Expr1, Safe), <<" AS ">>, convert(Alias)];
 expr({call, FuncName, []}, _Safe) ->
     [convert(FuncName), <<"()">>];
-expr({call, FuncName, Params}, _Safe) ->
-    [convert(FuncName), $(, make_list(Params, fun param/1), $)];
+expr({call, FuncName, Params}, Safe) ->
+    [convert(FuncName), $(, make_list(Params, fun(El) -> param(El, Safe) end), $)];
 expr({Val, Op, {select, _} = Subquery}, Safe) ->
     subquery(Val, Op, Subquery, Safe);
 expr({Val, Op, {select, _, _} = Subquery}, Safe) ->
@@ -475,12 +475,12 @@ expr2(undefined, _Safe) -> <<"NULL">>;
 expr2(Expr, _Safe) when is_atom(Expr) -> convert(Expr);
 expr2(Expr, Safe) -> expr(Expr, Safe).
 
-param({Key, Value}) when is_atom(Key) ->
+param({Key, Value}, _Safe) when is_atom(Key) ->
     [convert(Key), <<" := ">>, encode(Value)];
-param(Key) when is_atom(Key) ->
+param(Key, _Safe) when is_atom(Key) ->
     convert(Key);
-param(Value) ->
-    expr(Value).
+param(Value, Safe) ->
+    expr(Value, Safe).
 
 quote(String) when is_list(String) ->
     [$' | lists:reverse([$' | quote(String, [])])];
