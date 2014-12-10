@@ -394,10 +394,11 @@ expr({Val, Op, {_, union, _, _} = Subquery}, Safe) ->
 expr({Val, Op, {_, union, _, _, _} = Subquery}, Safe) ->
     subquery(Val, Op, Subquery, Safe);
 expr({_, in, []}, _Safe) -> <<"0">>;
+expr({Val, '&&', List}, Safe) when is_list(List) -> 
+    [expr2(Val, Safe), op('&&'), make_list(List, fun(El) -> expr(El, Safe) end)];
 expr({Val, Op, Values}, Safe) when (Op =:= in orelse
                                     Op =:= any orelse
                                     Op =:= all orelse
-                                    Op =:= '&&' orelse
                                     Op =:= some) andalso is_list(Values) ->
     [expr2(Val, Safe), subquery_op(Op), make_list(Values, fun encode/1), $)];
 expr({undefined, Op, Expr2}, Safe) when Op =:= 'and'; Op =:= 'not' ->
