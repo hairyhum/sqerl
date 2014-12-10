@@ -272,8 +272,8 @@ extra_clause({limit, Num}, _Safe) ->
     [<<" LIMIT ">>, encode(Num)];
 extra_clause({limit, Offset, Num}, _Safe) ->
     [<<" LIMIT ">>, encode(Offset), <<", ">> , encode(Num)];
-extra_clause({group_by, ColNames}, _Safe) ->
-    [<<" GROUP BY ">>, make_list(ColNames, fun convert/1)];
+extra_clause({group_by, ColNames}, Safe) ->
+    [<<" GROUP BY ">>, make_list(ColNames, fun(Expr) -> expr(Expr, Safe) end)];
 extra_clause({group_by, ColNames, having, Expr}, Safe) ->
     [extra_clause({group_by, ColNames}, Safe), <<" HAVING ">>,
      expr(Expr, Safe)];
