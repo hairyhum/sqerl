@@ -394,9 +394,11 @@ expr({Val, Op, {_, union, _, _} = Subquery}, Safe) ->
 expr({Val, Op, {_, union, _, _, _} = Subquery}, Safe) ->
     subquery(Val, Op, Subquery, Safe);
 expr({_, in, []}, _Safe) -> <<"0">>;
+expr({_, 'not in', []}, _Safe) -> <<" true ">>;
 expr({Val, '&&', List}, Safe) when is_list(List) -> 
     [expr2(Val, Safe), op('&&'), <<" array[">>, make_list(List, fun(El) -> expr(El, Safe) end), <<"] ">>];
 expr({Val, Op, Values}, Safe) when (Op =:= in orelse
+                                    Op =:= 'not in' orelse
                                     Op =:= any orelse
                                     Op =:= all orelse
                                     Op =:= some) andalso is_list(Values) ->
@@ -469,6 +471,7 @@ subquery(Val, Op, Subquery, Safe) ->
     [expr2(Val, Safe), subquery_op(Op), sql2(Subquery, Safe), $)].
 
 subquery_op(in) -> <<" IN (">>;
+subquery_op('not in') -> <<" NOT IN (">>;
 subquery_op(any) -> <<" ANY (">>;
 subquery_op(some) -> <<" SOME (">>;
 subquery_op(exists) -> <<" EXISTS (">>.
