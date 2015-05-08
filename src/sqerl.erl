@@ -112,6 +112,8 @@ sql2('commit', _Safe) ->
     [<<"COMMIT">>];
 sql2('roll', _Safe) ->
     [<<"ROLLBACK">>];
+sql2({with, {Name, as, Expr1}, Expr2}, Safe) ->
+    [<<"WITH ">>, expr(Name, Safe), <<" AS ">>, $(, sql2(Expr1, Safe), <<") ">>, sql2(Expr2, Safe)];
 sql2({select, Tables}, Safe)->
     select(Tables, Safe);
 sql2({select, Fields, {from, Tables}}, Safe) ->
@@ -124,10 +126,10 @@ sql2({select, Fields, {from, Tables}, WhereExpr, Extras}, Safe) ->
     select(undefined, Fields, Tables, WhereExpr, Extras, Safe);
 sql2({select, Fields, {from, Tables}, Extras}, Safe) ->
     select(undefined, Fields, Tables, undefined, Extras, Safe);
-sql2({select, Tables, {where, WhereExpr}}, Safe) ->
-    select(undefined, undefined, Tables, WhereExpr, Safe);
-sql2({select, Tables, WhereExpr}, Safe) ->
-    select(undefined, undefined, Tables, WhereExpr, Safe);
+sql2({select, Fields, {where, WhereExpr}}, Safe) ->
+    select(undefined, Fields, undefined, WhereExpr, Safe);
+sql2({select, Fields, WhereExpr}, Safe) ->
+    select(undefined, Fields, undefined, WhereExpr, Safe);
 sql2({select, Modifier, Fields, {from, Tables}}, Safe) ->
     select(Modifier, Fields, Tables, Safe);
 sql2({select, Modifier, Fields, {from, Tables}, {where, WhereExpr}}, Safe) ->
@@ -158,17 +160,21 @@ sql2({Select1, union_all, Select2, Extras}, Safe) ->
 sql2({Select1, union_all, Select2, {where, _} = Where, Extras}, Safe) ->
     [sql2({Select1, union, Select2, Where}, Safe), extra_clause(Extras, Safe)];
 
-sql2({insert, Table, Params}, _Safe) ->
-    insert(Table, Params);
+sql2({insert, Table, Params}, Safe) ->
+    insert(Table, Params, Safe);
 sql2({insert, Table, Params, Returning}, Safe) ->
     insert(Table, Params, Returning, Safe);
 
 sql2({update, Table, Props}, Safe) ->
     update(Table, Props, Safe);
 sql2({update, Table, Props, {where, Where}}, Safe) ->
-    update(Table, Props, Where, Safe);
+    update(Table, Props, Where, undefined, Safe);
+sql2({update, Table, Props, {where, Where}, Returning}, Safe) ->
+    update(Table, Props, Where, Returning, Safe);
 sql2({update, Table, Props, Where}, Safe) ->
-    update(Table, Props, Where, Safe);
+    update(Table, Props, Where, undefined, Safe);
+sql2({update, Table, Props, Where, Returning}, Safe) ->
+    update(Table, Props, Where, Returning, Safe);
 
 sql2({delete, {from, Table}}, Safe) ->
     delete(Table, Safe);
@@ -296,11 +302,15 @@ ins_param(Val) when is_atom(Val) ->
 ins_param(Val) ->
     encode(Val).
 
-insert(Table, Params) when is_list(Params) ->
+insert(Table, Params, _Safe) when is_list(Params) ->
     Names = make_list(Params, fun({Name, _}) -> convert(Name) end),
     Values = [$(, make_list(Params, fun({_, Val}) -> ins_param(Val) end), $)],
     make_insert_query(Table, Names, Values);
-insert(Table, {Fields, Records}) ->
+insert(Table, {Fields, Select}, Safe) when is_tuple(Select), element(1, Select) == select ->
+    [<<"INSERT INTO ">>, convert(Table), <<" (">>, make_list(Fields, fun convert/1), <<") ">>, sql2(Select, Safe)];
+insert(Table, Select, Safe) when is_tuple(Select), element(1, Select) == select ->
+    [<<"INSERT INTO ">>, convert(Table), <<" ">>, sql2(Select, Safe)];
+insert(Table, {Fields, Records}, _Safe) ->
     Names = make_list(Fields, fun convert/1),
     Values = make_list(Records, fun(Record) ->
         Record1 = if is_tuple(Record) -> tuple_to_list(Record);
@@ -310,28 +320,33 @@ insert(Table, {Fields, Records}) ->
     end),
     make_insert_query(Table, Names, Values).
 
-insert(Table, Params, undefined, _Safe) ->
-    insert(Table, Params);
+insert(Table, Params, undefined, Safe) ->
+    insert(Table, Params, Safe);
 insert(Table, Params, {returning, Ret}, Safe) ->
     insert(Table, Params, Ret, Safe);
 insert(Table, Params, Returning, Safe) ->
-    [insert(Table, Params), <<" RETURNING ">>, expr(Returning, Safe)].
+    [insert(Table, Params, Safe), <<" RETURNING ">>, expr(Returning, Safe)].
 
 make_insert_query(Table, Names, Values) ->
     [<<"INSERT INTO ">>, convert(Table),
      <<"(">>, Names, <<") VALUES ">>, Values].
 
 update(Table, Props, Safe) ->
-    update(Table, Props, undefined, Safe).
+    update(Table, Props, undefined, undefined, Safe).
 
-update(Table, Props, Where, Safe) when not is_list(Props) ->
-    update(Table, [Props], Where, Safe);
-update(Table, Props, Where, Safe) ->
+update(Table, Props, Where, {returning, Ret}, Safe) ->
+    update(Table, Props, Where, Ret, Safe);
+update(Table, Props, Where, Returning, Safe) when not is_list(Props) ->
+    update(Table, [Props], Where, Returning, Safe);
+update(Table, Props, Where, Returning, Safe) ->
     S1 = [<<"UPDATE ">>, convert(Table), <<" SET ">>],
     S2 = make_list(Props, fun({Field, Val}) ->
         [convert(Field), <<" = ">>, expr(Val, Safe)]
     end),
-    [S1, S2, where(Where, Safe)].
+    [S1, S2, where(Where, Safe)] ++ case Returning of
+        undefined -> [];
+        _ -> [<<" RETURNING ">>, expr(Returning, Safe)]
+    end.
 
 delete(Table, Safe) ->
     delete(Table, undefined, undefined, undefined, Safe).
